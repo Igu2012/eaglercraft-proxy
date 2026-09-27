@@ -1,0 +1,9 @@
+{
+  "versions": [
+    { "id": "1.5.2", "label": "Eaglercraft 1.5.2", "available": false },
+    { "id": "1.8.8", "label": "Eaglercraft 1.8.8", "available": false },
+    { "id": "1.12.2", "label": "Eaglercraft 1.12.2", "available": false },
+    { "id": "1.16", "label": "Eaglercraft 1.16.x (verify exact build)", "available": false },
+    { "id": "1.26.2", "label": "Eaglercraft 1.26.2 (verify source/build)", "available": false }
+  ]
+}

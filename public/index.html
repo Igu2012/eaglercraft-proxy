@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101910">
+  <meta name="description" content="A lightweight Eaglercraft client launcher with an allowlisted WebSocket relay.">
+  <title>Eaglercraft Proxy</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="brand">
+      <img src="/favicon.svg" width="32" height="32" alt="Grass block icon">
+      <span>Eaglercraft <strong>Proxy</strong></span>
+    </header>
+
+    <section class="panel" aria-labelledby="page-title">
+      <div class="eyebrow">BROWSER CLIENT LAUNCHER</div>
+      <h1 id="page-title">Choose your version</h1>
+      <p class="intro">Pick a client version and server. Your WebSocket connection is relayed through this deployment.</p>
+
+      <form id="launch-form">
+        <label for="version">Client version</label>
+        <select id="version" name="version" required></select>
+        <p id="version-note" class="field-note"></p>
+
+        <label for="server-address">Server address</label>
+        <input id="server-address" name="server" type="text" inputmode="url" autocomplete="url" placeholder="wss://vanilla.mc" required maxlength="2048">
+        <p class="field-note">Secure WebSocket (wss://) destinations must be enabled by the host operator.</p>
+
+        <button id="launch-button" type="submit">Load client</button>
+      </form>
+
+      <section id="loader" class="loader hidden" aria-live="polite">
+        <div class="loader-heading"><span id="loader-title">Loading client…</span><span id="loader-size">0.00 MB</span></div>
+        <div class="progress-track"><div id="progress-bar" class="progress-bar"></div></div>
+        <p id="loader-detail" class="field-note">Preparing download</p>
+      </section>
+
+      <div id="error" class="error hidden" role="alert"></div>
+      <div id="status" class="status" role="status"></div>
+    </section>
+
+    <section id="game-wrap" class="game-wrap hidden" aria-label="Game client">
+      <div class="game-toolbar"><span id="game-label">Client</span><button id="close-game" class="quiet-button" type="button">Close client</button></div>
+      <iframe id="game-frame" title="Eaglercraft client" allow="fullscreen; gamepad; pointer-lock" referrerpolicy="no-referrer"></iframe>
+    </section>
+
+    <footer>
+      <span>Client files are not bundled. Add only files you are authorized to use.</span>
+      <a href="https://github.com/Igu2012/eaglercraft-proxy" id="repo-link" rel="noreferrer">Source & setup</a>
+    </footer>
+  </main>
+</body>
+</html>
