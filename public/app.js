@@ -50,12 +50,12 @@ function updateVersionNote() {
   const selected = versionCatalog.find(item => item.id === versionSelect.value);
   versionNote.textContent = selected?.available
     ? 'Client file found in this deployment.'
-    : `Client file not installed. Add an authorized client at versions/${versionSelect.value}/client.html.`;
+    : `Client file not installed. Add an authorized client at versions/${versionSelect.value}.html.`;
 }
 
 function proxyHook(target) {
   const safeTarget = JSON.stringify(target);
-  return `<script>(function(){'use strict';var Native=window.WebSocket;var target=${safeTarget};function RelayedWebSocket(url,protocols){var relay=new URL('/socket',window.location.origin);relay.protocol=window.location.protocol==='https:'?'wss:':'ws:';relay.searchParams.set('target',target);return protocols===undefined?new Native(relay.href):new Native(relay.href,protocols);}RelayedWebSocket.prototype=Native.prototype;Object.setPrototypeOf(RelayedWebSocket,Native);['CONNECTING','OPEN','CLOSING','CLOSED'].forEach(function(k){RelayedWebSocket[k]=Native[k];});window.WebSocket=RelayedWebSocket;})();</script>`;
+  return `<script>(function(){'use strict';var Native=window.WebSocket;var target=${safeTarget};var relay=new URL('/socket',window.location.origin);relay.protocol=window.location.protocol==='https:'?'wss:':'ws:';relay.searchParams.set('target',target);var relayAddress=relay.href;function patchOptions(value){if(!value||typeof value!=='object')return value;if(Array.isArray(value.relays))value.relays=[{addr:relayAddress,name:'Selected relay via launcher',comment:'Selected relay via launcher',primary:true}];if(Object.prototype.hasOwnProperty.call(value,'checkRelaysForUpdates'))value.checkRelaysForUpdates=false;return value;}['eaglercraftOpts','eaglercraftXOpts','eaglercraftXOptsHints'].forEach(function(name){var descriptor=Object.getOwnPropertyDescriptor(window,name);if(descriptor&&!descriptor.configurable){try{window[name]=patchOptions(window[name]);}catch(_e){}return;}var value=patchOptions(window[name]);try{Object.defineProperty(window,name,{configurable:true,enumerable:true,get:function(){return value;},set:function(next){value=patchOptions(next);}});}catch(_e){window[name]=value;}});function RelayedWebSocket(url,protocols){return protocols===undefined?new Native(relayAddress):new Native(relayAddress,protocols);}RelayedWebSocket.prototype=Native.prototype;Object.setPrototypeOf(RelayedWebSocket,Native);['CONNECTING','OPEN','CLOSING','CLOSED'].forEach(function(k){RelayedWebSocket[k]=Native[k];});window.WebSocket=RelayedWebSocket;})();</script>`;
 }
 
 async function readWithProgress(response) {
@@ -129,7 +129,7 @@ form.addEventListener('submit', async event => {
     loaderSize.textContent = `${formatMB(bytes.byteLength)} / ${formatMB(bytes.byteLength)}`;
 
     let html = new TextDecoder('utf-8').decode(bytes);
-    const baseUrl = `${window.location.origin}/versions/${encodeURIComponent(version)}/`;
+    const baseUrl = new URL(response.headers.get('x-client-base') || `/versions/${encodeURIComponent(version)}/`, window.location.origin).href;
     const baseTag = `<base href="${baseUrl}">`;
     if (/<base\b[^>]*>/i.test(html)) html = html.replace(/<base\b[^>]*>/i, baseTag);
     else if (/<head\b[^>]*>/i.test(html)) html = html.replace(/<head\b[^>]*>/i, match => `${match}${baseTag}`);

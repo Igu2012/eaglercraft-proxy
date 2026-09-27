@@ -37,27 +37,43 @@ test('serves launcher and reports health with relay disabled by default', async 
   assert.deepEqual(await healthResponse.json(), { ok: true, proxyReady: false });
 });
 
-test('publishes the requested version slots', async () => {
+test('publishes the requested version slots and marks bundled clients available', async () => {
   const response = await fetch(`${BASE}/api/versions`);
   assert.equal(response.status, 200);
   const { versions } = await response.json();
   assert.deepEqual(versions.map(version => version.id), ['1.5.2', '1.8.8', '1.12.2', '1.16.5', '1.26.2', '26.2']);
+  assert.deepEqual(versions.filter(version => version.available).map(version => version.id), ['1.5.2', '1.8.8', '1.12.2']);
 });
 
-test('explains that client files are not bundled', async () => {
-  const response = await fetch(`${BASE}/api/client/1.8.8`);
+test('explains when a client file is not installed', async () => {
+  const response = await fetch(`${BASE}/api/client/1.16.5`);
   assert.equal(response.status, 404);
   assert.match((await response.json()).error, /No client is installed/);
 });
 
-test('serves an installed client with a byte length for download progress', async () => {
-  const clientPath = path.join(__dirname, '..', 'versions', '1.8.8', 'client.html');
+test('serves bundled flat HTML clients with byte length and their shared asset base', async () => {
+  for (const version of ['1.5.2', '1.8.8', '1.12.2']) {
+    const clientPath = path.join(__dirname, '..', 'versions', `${version}.html`);
+    const response = await fetch(`${BASE}/api/client/${version}`);
+    assert.equal(response.status, 200, `version ${version}`);
+    assert.equal(Number(response.headers.get('content-length')), fs.statSync(clientPath).size);
+    assert.equal(response.headers.get('x-client-base'), '/versions/');
+    const reader = response.body.getReader();
+    const firstChunk = await reader.read();
+    assert.match(Buffer.from(firstChunk.value).toString('utf8'), /<html\b/i);
+    await reader.cancel();
+  }
+});
+
+test('serves an installed legacy directory client with a byte length for download progress', async () => {
+  const clientPath = path.join(__dirname, '..', 'versions', '1.16.5', 'client.html');
   const fixture = '<!doctype html><title>test client</title>';
   fs.writeFileSync(clientPath, fixture);
   try {
-    const response = await fetch(`${BASE}/api/client/1.8.8`);
+    const response = await fetch(`${BASE}/api/client/1.16.5`);
     assert.equal(response.status, 200);
     assert.equal(Number(response.headers.get('content-length')), Buffer.byteLength(fixture));
+    assert.equal(response.headers.get('x-client-base'), '/versions/1.16.5/');
     assert.equal(await response.text(), fixture);
   } finally {
     fs.rmSync(clientPath, { force: true });

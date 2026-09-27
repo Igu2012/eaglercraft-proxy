@@ -46,15 +46,19 @@ app.get('/api/versions', (_req, res) => {
 app.get('/api/client/:version', (req, res) => {
   const version = String(req.params.version || '');
   if (!/^[a-zA-Z0-9.-]{1,24}$/.test(version)) return res.status(400).json({ error: 'Invalid version.' });
-  const file = path.join(ROOT, 'versions', version, 'client.html');
-  if (!file.startsWith(path.join(ROOT, 'versions') + path.sep)) return res.status(400).json({ error: 'Invalid version.' });
+  const versionsRoot = path.join(ROOT, 'versions');
+  const flatFile = path.join(versionsRoot, `${version}.html`);
+  const nestedFile = path.join(versionsRoot, version, 'client.html');
+  const file = fs.existsSync(flatFile) ? flatFile : nestedFile;
+  if (!file.startsWith(versionsRoot + path.sep)) return res.status(400).json({ error: 'Invalid version.' });
   if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
-    return res.status(404).json({ error: `No client is installed for ${version}. Add your legally obtained client as versions/${version}/client.html.` });
+    return res.status(404).json({ error: `No client is installed for ${version}. Add an authorized client as versions/${version}.html.` });
   }
   const size = fs.statSync(file).size;
   if (size > CLIENT_LIMIT_BYTES) return res.status(413).json({ error: `Client is larger than the ${Math.floor(CLIENT_LIMIT_BYTES / 1024 / 1024)} MB limit.` });
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Content-Length', size);
+  res.setHeader('X-Client-Base', file === flatFile ? '/versions/' : `/versions/${encodeURIComponent(version)}/`);
   res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(file);
 });

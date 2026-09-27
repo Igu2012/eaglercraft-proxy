@@ -27,9 +27,9 @@
         <select id="version" name="version" required></select>
         <p id="version-note" class="field-note"></p>
 
-        <label for="server-address">Server address</label>
-        <input id="server-address" name="server" type="text" inputmode="url" autocomplete="url" placeholder="wss://vanilla.mc" required maxlength="2048">
-        <p class="field-note">Secure WebSocket (wss://) destinations must be enabled by the host operator.</p>
+        <label for="server-address">Eaglercraft relay address</label>
+        <input id="server-address" name="server" type="text" inputmode="url" autocomplete="url" placeholder="wss://relay.example.net" required maxlength="2048">
+        <p class="field-note">Use a secure WebSocket (wss://) relay enabled by the host operator.</p>
 
         <button id="launch-button" type="submit">Load client</button>
       </form>
@@ -50,7 +50,7 @@
     </section>
 
     <footer>
-      <span>Client files are not bundled. Add only files you are authorized to use.</span>
+      <span>Bundled clients are documented in the source repository. Use only where authorized.</span>
       <a href="https://github.com/Igu2012/eaglercraft-proxy" id="repo-link" rel="noreferrer">Source & setup</a>
     </footer>
   </main>
