@@ -2,6 +2,8 @@
 
 A minimal English-language launcher for **client files you are authorized to host**, with a secure WebSocket relay through the Node service. The repository includes a Render Blueprint and a byte-progress loader.
 
+[Deploy this Blueprint on Render](https://render.com/deploy?repo=https://github.com/Igu2012/eaglercraft-proxy)
+
 > This is an independent community project. It is not affiliated with, endorsed by, or sponsored by Mojang or Microsoft. Minecraft and Eaglercraft names belong to their respective owners. No compiled game/client files are included.
 
 ## Features
@@ -12,6 +14,19 @@ A minimal English-language launcher for **client files you are authorized to hos
 - Destination hostnames and ports must be explicitly allowlisted; private, loopback, link-local, and other non-public DNS addresses are rejected.
 - Render Blueprint (`render.yaml`) with a health check and automatic deployment on commits.
 - Original 32×32 grass-block-style SVG favicon (not the official Minecraft logo).
+
+## Version research (checked 2026-09-27)
+
+| Slot | Finding | Client file |
+| --- | --- | --- |
+| `1.5.2` | Eaglercraft 1.5.2 SP2 (`sp2.01`); the archive license/provenance does not by itself clear a compiled Minecraft-derived client for redistribution. | Not included. |
+| `1.8.8` | EaglercraftX 1.8.8 (`u53`); the archived source says All Rights Reserved and is not a client redistribution license. | Not included. |
+| `1.12.2` | Eaglercraft 1.12.2 (`u3`); the public project listing does not grant rights to redistribute the compiled client. | Not included. |
+| `1.16.5` | Community build labeled `Eaglercraft 1.16 u3`; it is not verified as an original-project release and has no clear redistribution grant. | Not included. |
+| `1.26.2` | No authoritative Eaglercraft build with this name was verified. | Placeholder only. |
+| `26.2` | Mojang's 2026 Java release name; a third-party launcher lists `26.2 (u0) WASM`, but it is unverified community material. | Not included. |
+
+Primary/version references: [Eaglercraft downloads](https://eaglercraft.com/p/downloads), [Eaglercraft legal page](https://eaglercraft.com/p/legal), [Minecraft EULA](https://www.minecraft.net/en-us/eula), [Minecraft 26.2 release](https://www.minecraft.net/en-us/article/minecraft-java-edition-26-2), and the per-version READMEs under `versions/`. These links are research references, not endorsements or permission to copy files. This repository contains no compiled Eaglercraft or Minecraft client binaries.
 
 ## Deploy to Render
 
@@ -42,7 +57,7 @@ This repository deliberately does not download or redistribute Eaglercraft/Minec
 2. Set `available: true` for that version in `versions/catalog.json`.
 3. Commit and push the change. Clients are limited to 150 MB by default (`CLIENT_LIMIT_MB`).
 
-Directories in `versions/` are placeholders only. Version labels must be verified against primary project sources before treating them as an available build.
+The directories under `versions/` are source-documented slots; none contains a client file in this repository. Review each slot's README and verify a build and hosting rights before setting it available.
 
 ## Configuration
 

@@ -1,6 +1,8 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { spawn } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
 const WebSocket = require('ws');
 
 const PORT = 3137;
@@ -39,13 +41,27 @@ test('publishes the requested version slots', async () => {
   const response = await fetch(`${BASE}/api/versions`);
   assert.equal(response.status, 200);
   const { versions } = await response.json();
-  assert.deepEqual(versions.map(version => version.id), ['1.5.2', '1.8.8', '1.12.2', '1.16', '1.26.2']);
+  assert.deepEqual(versions.map(version => version.id), ['1.5.2', '1.8.8', '1.12.2', '1.16.5', '1.26.2', '26.2']);
 });
 
 test('explains that client files are not bundled', async () => {
   const response = await fetch(`${BASE}/api/client/1.8.8`);
   assert.equal(response.status, 404);
   assert.match((await response.json()).error, /No client is installed/);
+});
+
+test('serves an installed client with a byte length for download progress', async () => {
+  const clientPath = path.join(__dirname, '..', 'versions', '1.8.8', 'client.html');
+  const fixture = '<!doctype html><title>test client</title>';
+  fs.writeFileSync(clientPath, fixture);
+  try {
+    const response = await fetch(`${BASE}/api/client/1.8.8`);
+    assert.equal(response.status, 200);
+    assert.equal(Number(response.headers.get('content-length')), Buffer.byteLength(fixture));
+    assert.equal(await response.text(), fixture);
+  } finally {
+    fs.rmSync(clientPath, { force: true });
+  }
 });
 
 test('rejects an unapproved WebSocket destination before opening an upstream', async () => {

@@ -101,6 +101,17 @@ function decrementConnection(ip) {
   if (next <= 0) activeByIp.delete(ip); else activeByIp.set(ip, next);
 }
 
+function safeCloseCode(code) {
+  const standard = code === 1000 || (code >= 1001 && code <= 1014 && ![1004, 1005, 1006].includes(code));
+  return standard || (code >= 3000 && code <= 4999) ? code : 1011;
+}
+
+function safeCloseReason(reason) {
+  let value = reason.toString('utf8');
+  while (Buffer.byteLength(value, 'utf8') > 120) value = value.slice(0, -1);
+  return value;
+}
+
 const wss = new WebSocket.WebSocketServer({ noServer: true, maxPayload: MAX_WS_PAYLOAD, perMessageDeflate: false });
 
 server.on('upgrade', async (req, socket, head) => {
@@ -188,7 +199,7 @@ server.on('upgrade', async (req, socket, head) => {
       if (client.readyState === WebSocket.OPEN) client.send(data, { binary: isBinary });
     });
     upstream.on('close', (code, reason) => {
-      if (client.readyState === WebSocket.OPEN) client.close(code >= 1000 && code < 5000 ? code : 1011, reason.toString().slice(0, 120));
+      if (client.readyState === WebSocket.OPEN) client.close(safeCloseCode(code), safeCloseReason(reason));
       release();
     });
     upstream.on('error', () => {
