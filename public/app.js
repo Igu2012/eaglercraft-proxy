@@ -11,8 +11,6 @@ const errorBox = document.querySelector('#error');
 const statusBox = document.querySelector('#status');
 const gameWrap = document.querySelector('#game-wrap');
 const gameFrame = document.querySelector('#game-frame');
-const gameLabel = document.querySelector('#game-label');
-const fullscreenButton = document.querySelector('#fullscreen-game');
 const fullscreenReturn = document.querySelector('#fullscreen-return');
 const returnToFullscreenButton = document.querySelector('#return-to-fullscreen');
 const clientLoadingOverlay = document.querySelector('#client-loading-overlay');
@@ -33,7 +31,7 @@ let mobileFullscreenMode = false;
 let nativeFullscreenWasEntered = false;
 let pendingReturnPrompt = false;
 let gameReady = false;
-let closingGame = false;
+let suppressReturnPrompt = false;
 
 function formatMB(bytes) { return `${(bytes / 1024 / 1024).toFixed(2)} MB`; }
 function showError(message) { errorBox.textContent = message; errorBox.classList.remove('hidden'); }
@@ -42,8 +40,10 @@ function formatTime(value = new Date()) {
   return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' }).format(new Date(value));
 }
 
-function isTouchDevice() {
-  return navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches;
+function isMobileDevice() {
+  const userAgent = navigator.userAgent || '';
+  if (navigator.userAgentData?.mobile === true || /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent)) return true;
+  return navigator.maxTouchPoints > 0 && window.matchMedia('(max-width: 900px) and (pointer: coarse)').matches;
 }
 
 function activeFullscreenElement() {
@@ -79,15 +79,13 @@ async function exitPageFullscreen() {
 
 function syncFullscreenState() {
   const inFullscreen = Boolean(activeFullscreenElement());
-  fullscreenButton.textContent = inFullscreen ? 'Exit full screen' : 'Full screen';
-  document.body.classList.toggle('native-fullscreen', inFullscreen);
   if (inFullscreen) {
     nativeFullscreenWasEntered = true;
     pendingReturnPrompt = false;
     fullscreenReturn.classList.add('hidden');
     return;
   }
-  if (mobileFullscreenMode && nativeFullscreenWasEntered && !closingGame) {
+  if (mobileFullscreenMode && nativeFullscreenWasEntered && !suppressReturnPrompt) {
     pendingReturnPrompt = true;
     fullscreenReturn.classList.toggle('hidden', !gameReady);
     if (screen.orientation && typeof screen.orientation.unlock === 'function') screen.orientation.unlock();
@@ -342,7 +340,8 @@ async function launchClient() {
   closingGame = false;
   pendingReturnPrompt = false;
   nativeFullscreenWasEntered = Boolean(activeFullscreenElement());
-  mobileFullscreenMode = isTouchDevice();
+  mobileFullscreenMode = isMobileDevice();
+  suppressReturnPrompt = false;
   statusBox.textContent = '';
   const version = versionSelect.value;
   loader.classList.remove('hidden');
@@ -390,7 +389,6 @@ async function launchClient() {
     const hook = proxyHook(serverCatalog);
     if (/<head\b[^>]*>/i.test(html)) html = html.replace(/<head\b[^>]*>/i, match => `${match}${policy}${hook}`);
     else html = `${policy}${hook}${html}`;
-    gameLabel.textContent = `Eaglercraft ${version} · Render proxy enabled`;
     statusBox.textContent = 'Single-player is available. Multiplayer can use only WSS addresses from the Serverlist, routed through Render.';
     gameWrap.classList.remove('hidden');
     clientLoadingText.textContent = `Opening Eaglercraft ${version}…`;
@@ -409,7 +407,7 @@ async function launchClient() {
   } catch (error) {
     loader.classList.add('hidden');
     clientLoadingOverlay.classList.add('hidden');
-    closingGame = true;
+    suppressReturnPrompt = true;
     gameReady = false;
     pendingReturnPrompt = false;
     fullscreenReturn.classList.add('hidden');
@@ -417,10 +415,10 @@ async function launchClient() {
     if (screen.orientation && typeof screen.orientation.unlock === 'function') screen.orientation.unlock();
     gameFrame.srcdoc = '';
     gameWrap.classList.add('hidden');
-    document.body.classList.remove('client-loading', 'client-active', 'native-fullscreen');
+    document.body.classList.remove('client-loading', 'client-active');
     mobileFullscreenMode = false;
     nativeFullscreenWasEntered = false;
-    closingGame = false;
+    suppressReturnPrompt = false;
     showError(error.message || 'Could not load the client.');
   } finally {
     launchButton.disabled = false;
@@ -430,18 +428,6 @@ async function launchClient() {
 form.addEventListener('submit', event => {
   event.preventDefault();
   void launchClient();
-});
-
-fullscreenButton.addEventListener('click', async () => {
-  try {
-    if (activeFullscreenElement()) await exitPageFullscreen();
-    else {
-      await requestPageFullscreen();
-      if (mobileFullscreenMode) await lockLandscape();
-    }
-  } catch (error) {
-    gameLabel.textContent = error.message || 'Could not switch to full screen.';
-  }
 });
 
 returnToFullscreenButton.addEventListener('click', () => {
@@ -459,21 +445,5 @@ window.addEventListener('orientationchange', maintainLandscape);
 if (screen.orientation && typeof screen.orientation.addEventListener === 'function') {
   screen.orientation.addEventListener('change', maintainLandscape);
 }
-
-document.querySelector('#close-game').addEventListener('click', async () => {
-  closingGame = true;
-  gameReady = false;
-  pendingReturnPrompt = false;
-  fullscreenReturn.classList.add('hidden');
-  clientLoadingOverlay.classList.add('hidden');
-  await exitPageFullscreen();
-  gameFrame.srcdoc = '';
-  gameWrap.classList.add('hidden');
-  document.body.classList.remove('client-loading', 'client-active', 'native-fullscreen');
-  if (screen.orientation && typeof screen.orientation.unlock === 'function') screen.orientation.unlock();
-  mobileFullscreenMode = false;
-  nativeFullscreenWasEntered = false;
-  closingGame = false;
-});
 
 initialize();

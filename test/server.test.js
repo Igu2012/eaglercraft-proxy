@@ -36,8 +36,7 @@ test('serves launcher and reports catalog-backed relay readiness without upstrea
   const html = await page.text();
   assert.match(html, /Eaglercraft Proxy/);
   assert.match(html, /Choose your version/);
-  assert.match(html, /Full screen/);
-  assert.match(html, /allowfullscreen/);
+  assert.doesNotMatch(html, /id="fullscreen-game"|id="close-game"|allowfullscreen|>Close client</);
   assert.match(html, /id="fullscreen-return"/);
   assert.match(html, /Tap to return/);
   assert.match(html, /id="client-loading-overlay"/);
@@ -57,11 +56,14 @@ test('copies only catalog-backed Render relay addresses and blocks external WebS
   assert.match(client, /connect-src 'self' \$\{socketOrigin\}/);
   assert.match(client, /root\.requestFullscreen\(\{ navigationUI: 'hide' \}\)/);
   assert.match(client, /function requestPageFullscreen\(\)/);
+  assert.match(client, /function isMobileDevice\(\)/);
+  assert.match(client, /navigator\.userAgentData\?\.mobile === true/);
   assert.match(client, /function waitForFrameLoad\(frame\)/);
   assert.match(client, /screen\.orientation\.lock\('landscape'\)/);
   assert.match(client, /window\.addEventListener\('orientationchange', maintainLandscape\)/);
   assert.match(client, /pendingReturnPrompt = true/);
   assert.match(client, /returnToFullscreenButton\.addEventListener\('click'/);
+  assert.doesNotMatch(client, /fullscreenButton|querySelector\('#close-game'\)/);
   const styles = fs.readFileSync(path.join(__dirname, '..', 'public', 'styles.css'), 'utf8');
   assert.match(styles, /body\.client-active #game-frame/);
   assert.match(styles, /height:100dvh/);

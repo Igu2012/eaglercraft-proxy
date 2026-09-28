@@ -10,7 +10,7 @@ label{display:block;font-size:12px;font-weight:600;color:#dce5db;margin:18px 0 8
 button{font:inherit}#launch-button{height:46px;width:100%;margin-top:24px;border:0;border-radius:8px;background:var(--green);color:#122010;font-weight:700;font-size:14px;cursor:pointer;transition:filter .15s,transform .15s}#launch-button:hover{filter:brightness(1.06)}#launch-button:active{transform:translateY(1px)}#launch-button:disabled{opacity:.55;cursor:wait}
 .loader{margin-top:24px;padding:15px;border:1px solid var(--line);background:#121812;border-radius:9px}.hidden{display:none!important}.loader-heading{display:flex;justify-content:space-between;gap:12px;font-size:12px;font-weight:600;margin-bottom:10px}.loader-heading span:last-child{color:var(--green);font-variant-numeric:tabular-nums}.progress-track{height:6px;border-radius:9px;background:#283128;overflow:hidden}.progress-bar{height:100%;width:0;background:linear-gradient(90deg,#53a949,var(--green));border-radius:9px;transition:width .15s ease}
 .error{margin-top:18px;padding:12px 14px;border-radius:8px;border:1px solid #673b35;background:#2b1c19;color:var(--danger);font-size:12px;line-height:1.55;overflow-wrap:anywhere}.status{min-height:1px;margin-top:12px;color:var(--muted);font-size:11px;line-height:1.5}
-.game-wrap{margin:24px auto 0;border:1px solid var(--line);border-radius:12px;background:#111711;overflow:hidden}.game-toolbar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-size:12px;color:#dce5db}.quiet-button{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:12px}.quiet-button:hover{color:white}#game-frame{display:block;width:100%;height:min(70vh,650px);min-height:380px;border:0;background:#000}
+.game-wrap{margin:24px auto 0;border:1px solid var(--line);border-radius:12px;background:#111711;overflow:hidden}#game-frame{display:block;width:100%;height:min(70vh,650px);min-height:380px;border:0;background:#000}
 footer{display:flex;justify-content:space-between;gap:15px;align-items:center;margin:24px auto 0;width:min(100%,690px);color:#829082;font-size:10px;line-height:1.5}footer a{color:#a9dca1;text-decoration:none;white-space:nowrap}footer a:hover{text-decoration:underline}
 @media(max-width:560px){.shell{width:min(100% - 22px,760px);padding-top:17px}.brand{margin-bottom:30px}.panel{padding:24px 19px}.intro{font-size:13px}footer{align-items:flex-start;flex-direction:column}#game-frame{min-height:280px;height:65vh}}
 
@@ -39,8 +39,6 @@ footer{display:flex;justify-content:space-between;gap:15px;align-items:center;ma
 .copy-server-button{grid-column:1/-1;min-width:112px;min-height:34px;border:1px solid #486d45;border-radius:7px;background:#203020;color:var(--green);font-size:11px;font-weight:700;cursor:pointer}
 .copy-server-button:hover{background:#2a3d2a}
 .server-copy-status{min-height:16px;margin:0 0 9px}
-.game-toolbar-actions{display:flex;align-items:center;gap:16px}
-#game-frame:fullscreen,#game-frame:-webkit-full-screen{width:100vw;height:100vh;min-height:100vh;max-height:none;border:0;border-radius:0;background:#000}
 .server-list-empty{padding:18px;border:1px dashed var(--line);border-radius:9px;color:var(--muted);font-size:12px;text-align:center}
 @media(max-width:560px){.server-card{align-items:flex-start;gap:9px;padding:11px}.server-card-metrics{grid-template-columns:auto;gap:5px}.serverlist-heading{align-items:flex-start;flex-direction:column}.serverlist-updated{text-align:left}}
 
@@ -50,17 +48,11 @@ body.client-loading .shell{width:100%;height:100%;min-height:100%;max-width:none
 body.client-loading .shell>.brand,body.client-loading #launcher-panel,body.client-loading .shell>footer{display:none}
 body.client-loading #game-wrap{position:fixed;inset:0;z-index:1000;width:100vw;height:100vh;height:100dvh;margin:0;border:0;border-radius:0;overflow:hidden;background:#000}
 body.client-loading #game-frame{display:block;width:100vw;height:100vh;height:100dvh;min-height:100vh;min-height:100dvh;max-height:none;border:0;border-radius:0;background:#000}
-body.client-loading .game-toolbar{display:none}
 body.client-active{width:100%;height:100%;min-height:100%;overflow:hidden;background:#000}
 body.client-active .shell{width:100%;height:100%;min-height:100%;max-width:none;margin:0;padding:0}
 body.client-active .shell>.brand,body.client-active #launcher-panel,body.client-active .shell>footer{display:none}
 body.client-active #game-wrap{position:fixed;inset:0;z-index:1000;width:100vw;height:100vh;height:100dvh;margin:0;border:0;border-radius:0;overflow:hidden;background:#000}
 body.client-active #game-frame{display:block;width:100vw;height:100vh;height:100dvh;min-height:100vh;min-height:100dvh;max-height:none;border:0;border-radius:0;background:#000}
-body.client-active .game-toolbar{position:absolute;top:max(8px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));z-index:2;width:auto;display:flex;gap:12px;padding:7px 10px;border:0;border-radius:9px;background:#071007c9;color:#fff;opacity:.65;transition:opacity .15s}
-body.client-active .game-toolbar:hover,body.client-active .game-toolbar:focus-within{opacity:1}
-body.client-active #game-label{display:none}
-body.client-active .game-toolbar-actions{gap:10px}
-body.client-active .quiet-button{min-height:38px;padding:4px 8px;color:#fff}
 .client-loading-overlay{position:fixed;inset:0;z-index:1500;display:grid;place-content:center;justify-items:center;gap:16px;padding:24px;background:#050805f5;color:#f0f4ef;text-align:center}
 .client-loading-overlay p{margin:0;font-size:15px;font-weight:600}
 .client-loading-indicator{width:34px;height:34px;border:3px solid #364137;border-top-color:var(--green);border-radius:50%;animation:client-spin .8s linear infinite}
@@ -70,4 +62,3 @@ body.client-active .quiet-button{min-height:38px;padding:4px 8px;color:#fff}
 .fullscreen-return-card{width:min(100%,340px);padding:28px 22px;border:1px solid #364137;border-radius:14px;background:#141a14;text-align:center;box-shadow:0 20px 70px #0009}
 .fullscreen-return-card p{margin:0 0 18px;color:#c4cec3;font-size:14px}
 #return-to-fullscreen{width:100%;min-height:52px;border:0;border-radius:9px;background:var(--green);color:#122010;font-size:16px;font-weight:800;cursor:pointer;touch-action:manipulation}
-@media(max-width:700px){body.client-active .game-toolbar{top:max(5px,env(safe-area-inset-top));right:max(5px,env(safe-area-inset-right));gap:4px;padding:4px 6px;opacity:.5}body.client-active .quiet-button{min-height:36px;font-size:11px}}
