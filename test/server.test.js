@@ -40,6 +40,7 @@ test('serves launcher and reports catalog-backed relay readiness without upstrea
   assert.match(html, /allowfullscreen/);
   assert.match(html, /id="fullscreen-return"/);
   assert.match(html, /Tap to return/);
+  assert.match(html, /id="client-loading-overlay"/);
   assert.doesNotMatch(html, /Jogar|Servidores|Aguardando/);
   assert.doesNotMatch(html, /server-address/);
   assert.deepEqual(await healthResponse.json(), { ok: true, proxyReady: true, serverCount: 10 });
@@ -56,6 +57,7 @@ test('copies only catalog-backed Render relay addresses and blocks external WebS
   assert.match(client, /connect-src 'self' \$\{socketOrigin\}/);
   assert.match(client, /root\.requestFullscreen\(\{ navigationUI: 'hide' \}\)/);
   assert.match(client, /function requestPageFullscreen\(\)/);
+  assert.match(client, /function waitForFrameLoad\(frame\)/);
   assert.match(client, /screen\.orientation\.lock\('landscape'\)/);
   assert.match(client, /window\.addEventListener\('orientationchange', maintainLandscape\)/);
   assert.match(client, /pendingReturnPrompt = true/);
@@ -65,6 +67,10 @@ test('copies only catalog-backed Render relay addresses and blocks external WebS
   assert.match(styles, /height:100dvh/);
   const launchFlow = client.slice(client.indexOf('async function launchClient'), client.indexOf("form.addEventListener('submit'"));
   assert.ok(launchFlow.indexOf('requestPageFullscreen()') < launchFlow.indexOf('await fetch('), 'mobile fullscreen must be requested during the original user gesture');
+  const frameLoadedAt = launchFlow.indexOf('await frameReady');
+  const orientationLockAt = launchFlow.indexOf('await lockLandscape()', frameLoadedAt);
+  assert.ok(frameLoadedAt > 0 && orientationLockAt > frameLoadedAt, 'screen rotation must wait for the iframe load event');
+  assert.match(launchFlow, /body\.classList\.add\('client-active'\)/);
   assert.doesNotMatch(client, /searchParams\.set\('target'/);
   assert.doesNotMatch(client, /Jogar|Servidores|Aguardando|Escolha|Medição|Conectando/);
 });

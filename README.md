@@ -12,7 +12,7 @@ A lightweight launcher for standalone Eaglercraft HTML clients, with a secure We
 - The `Play` tab lets the user choose a client version and load it for single-player or multiplayer.
 - Real download progress (`loaded MB / total MB`) for the bundled standalone HTML clients.
 - Each server card copies its Render-proxy WSS address; the game client can connect only to relays from the curated list.
-- After loading, the game fills the browser viewport. On touch devices, the `Load client` tap requests native browser fullscreen and a landscape orientation lock where supported.
+- After the client iframe finishes loading its HTML and dependent resources, the game fills the browser viewport. On touch devices, the `Load client` tap requests native fullscreen; landscape orientation is requested only after that iframe `load` event, where supported.
 - If the user leaves native fullscreen on a touch device, a `Tap to return` screen asks for another tap to re-enter; browsers without these APIs fall back to filling the page viewport.
 - A `Serverlist` tab shows a curated selection of Eaglercraft servers with online state and WebSocket-handshake ping measured by this Render service.
 - The server list asks the Render API for fresh shared ping results every second while open; each listed server is probed at most once per second per service instance.
