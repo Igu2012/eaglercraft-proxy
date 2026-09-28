@@ -1,10 +1,7 @@
 {
   "versions": [
-    { "id": "1.5.2", "label": "Eaglercraft 1.5.2 SP2 (sp2.01)", "available": true },
-    { "id": "1.8.8", "label": "EaglercraftX 1.8.8 (u53)", "available": true },
-    { "id": "1.12.2", "label": "Eaglercraft 1.12.2 (u3)", "available": true },
-    { "id": "1.16.5", "label": "Community Eaglercraft 1.16.5 (u3, unofficial)", "available": false },
-    { "id": "1.26.2", "label": "1.26.2 (no verified Eaglercraft build)", "available": false },
-    { "id": "26.2", "label": "Community 26.2 (u0, unverified)", "available": false }
+    { "id": "1.5.2", "label": "Eaglercraft 1.5.2", "available": true },
+    { "id": "1.8.8", "label": "Eaglercraft 1.8.8", "available": true },
+    { "id": "1.12.2", "label": "Eaglercraft 1.12.2", "available": true }
   ]
 }

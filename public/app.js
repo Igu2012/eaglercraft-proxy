@@ -12,12 +12,14 @@ const statusBox = document.querySelector('#status');
 const gameWrap = document.querySelector('#game-wrap');
 const gameFrame = document.querySelector('#game-frame');
 const gameLabel = document.querySelector('#game-label');
+const fullscreenButton = document.querySelector('#fullscreen-game');
 const playTab = document.querySelector('#play-tab');
 const serversTab = document.querySelector('#servers-tab');
 const playView = document.querySelector('#play-view');
 const serversView = document.querySelector('#serverlist-view');
 const serverListElement = document.querySelector('#serverlist');
 const serverListUpdated = document.querySelector('#serverlist-updated');
+const serverCopyStatus = document.querySelector('#server-copy-status');
 const MAX_CLIENT_BYTES = 150 * 1024 * 1024;
 let versionCatalog = [];
 let serverCatalog = [];
@@ -27,6 +29,50 @@ let serverListRequestInFlight = false;
 function formatMB(bytes) { return `${(bytes / 1024 / 1024).toFixed(2)} MB`; }
 function showError(message) { errorBox.textContent = message; errorBox.classList.remove('hidden'); }
 function clearError() { errorBox.textContent = ''; errorBox.classList.add('hidden'); }
+function formatTime(value = new Date()) {
+  return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' }).format(new Date(value));
+}
+
+function getProxyAddress(serverId) {
+  const address = new URL('/socket', window.location.origin);
+  address.protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  address.searchParams.set('server', serverId);
+  return address.href;
+}
+
+async function writeClipboard(value) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return;
+    } catch { /* Use the browser fallback below. */ }
+  }
+  const field = document.createElement('textarea');
+  field.value = value;
+  field.setAttribute('readonly', '');
+  field.style.position = 'fixed';
+  field.style.opacity = '0';
+  document.body.append(field);
+  field.select();
+  const copied = document.execCommand('copy');
+  field.remove();
+  if (!copied) throw new Error('Clipboard access was denied. Copy the WSS address shown on the card.');
+}
+
+async function copyServerAddress(serverId, button) {
+  const item = serverCatalog.find(server => server.id === serverId);
+  if (!item) {
+    serverCopyStatus.textContent = 'That server is no longer available in the list.';
+    return;
+  }
+  try {
+    await writeClipboard(getProxyAddress(item.id));
+    serverCopyStatus.textContent = `Copied the Render WSS address for ${item.name}.`;
+    if (button) button.textContent = 'Copied';
+  } catch (error) {
+    serverCopyStatus.textContent = error.message || 'Could not copy the WSS address.';
+  }
+}
 
 async function initialize() {
   try {
@@ -52,15 +98,15 @@ async function initialize() {
     playTab.addEventListener('click', () => switchTab('play'));
     serversTab.addEventListener('click', () => switchTab('servers'));
     serverListElement.addEventListener('click', event => {
-      const button = event.target.closest('[data-join-server]');
-      if (!button) return;
-      switchTab('play');
-      void launchClient(button.dataset.joinServer);
+      const button = event.target.closest('[data-copy-server]');
+      if (button) void copyServerAddress(button.dataset.copyServer, button);
     });
     try {
       const health = await healthResponse.json();
-      statusBox.textContent = health.proxyReady ? `Render proxy ready for ${health.serverCount} listed servers.` : 'No servers are configured in the local catalog.';
-    } catch { /* health text is optional */ }
+      statusBox.textContent = health.proxyReady
+        ? `Render proxy ready for ${health.serverCount} listed servers.`
+        : 'No servers are configured in the local catalog.';
+    } catch { /* Health status is optional. */ }
   } catch (error) {
     showError(error.message || 'Initialization failed.');
   }
@@ -80,7 +126,7 @@ function renderServerList(servers) {
   if (!servers.length) {
     const empty = document.createElement('p');
     empty.className = 'server-list-empty';
-    empty.textContent = 'Nenhum servidor disponível no momento.';
+    empty.textContent = 'No servers are available right now.';
     serverListElement.replaceChildren(empty);
     return;
   }
@@ -94,25 +140,30 @@ function renderServerList(servers) {
     name.textContent = item.name;
     const address = document.createElement('p');
     address.className = 'server-address';
-    address.textContent = `${item.address} · ${(item.categories || []).join(' · ')}`;
+    address.textContent = `Server: ${item.address} · ${(item.categories || []).join(' · ')}`;
+    const relay = document.createElement('p');
+    relay.className = 'server-proxy-address';
+    relay.textContent = `Render proxy: ${getProxyAddress(item.id)}`;
     const checked = document.createElement('p');
     checked.className = 'server-checked';
-    checked.textContent = item.checkedAt ? `Medição às ${new Date(item.checkedAt).toLocaleTimeString()}` : 'Aguardando primeira medição';
-    details.append(name, address, checked);
+    checked.textContent = item.checkedAt ? `Checked at ${formatTime(item.checkedAt)}` : 'Waiting for first check';
+    details.append(name, address, relay, checked);
+
     const metrics = document.createElement('div');
     metrics.className = 'server-card-metrics';
     const state = document.createElement('span');
     state.className = `server-state ${item.online === true ? 'online' : item.online === false ? 'offline' : 'checking'}`;
-    state.textContent = item.online === true ? 'Online' : item.online === false ? 'Offline' : 'Medindo';
+    state.textContent = item.online === true ? 'Online' : item.online === false ? 'Offline' : 'Checking';
     const ping = document.createElement('strong');
     ping.className = 'server-ping';
     ping.textContent = item.online === true ? `${item.pingMs} ms` : item.online === false ? '— ms' : '… ms';
-    const join = document.createElement('button');
-    join.type = 'button';
-    join.className = 'join-server-button';
-    join.dataset.joinServer = item.id;
-    join.textContent = 'Jogar';
-    metrics.append(state, ping, join);
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.className = 'copy-server-button';
+    copy.dataset.copyServer = item.id;
+    copy.setAttribute('aria-label', `Copy Render WSS address for ${item.name}`);
+    copy.textContent = 'Copy WSS';
+    metrics.append(state, ping, copy);
     card.append(details, metrics);
     fragment.append(card);
   }
@@ -124,15 +175,15 @@ async function refreshServerList() {
   serverListRequestInFlight = true;
   try {
     const response = await fetch('/api/servers?probe=1', { cache: 'no-store' });
-    if (!response.ok) throw new Error(`Falha ao atualizar a lista (${response.status}).`);
+    if (!response.ok) throw new Error(`Server list refresh failed (${response.status}).`);
     const data = await response.json();
     serverCatalog = Array.isArray(data.servers) ? data.servers : [];
     renderServerList(serverCatalog);
-    serverListUpdated.textContent = `Atualizado no Render às ${new Date().toLocaleTimeString()} · intervalo de 1 s`;
+    serverListUpdated.textContent = `Updated by Render at ${formatTime()} · refresh every 1 second`;
   } catch (error) {
     const message = document.createElement('p');
     message.className = 'server-list-empty';
-    message.textContent = error.message || 'Não foi possível atualizar a lista de servidores.';
+    message.textContent = error.message || 'Could not refresh the server list.';
     serverListElement.replaceChildren(message);
   } finally {
     serverListRequestInFlight = false;
@@ -154,23 +205,18 @@ function stopServerListPolling() {
 function updateVersionNote() {
   const selected = versionCatalog.find(item => item.id === versionSelect.value);
   versionNote.textContent = selected?.available
-    ? 'Client file found in this deployment.'
-    : `Client file not installed. Add an authorized client at versions/${versionSelect.value}.html.`;
+    ? 'This client is available in the current deployment.'
+    : 'This client is not installed in the current deployment.';
 }
 
-function proxyHook(serverId) {
-  const safeServerId = JSON.stringify(serverId);
-  return `<script>(function(){'use strict';var Native=window.WebSocket;var serverId=${safeServerId};var relay=new URL('/socket',window.location.origin);relay.protocol=window.location.protocol==='https:'?'wss:':'ws:';relay.searchParams.set('server',serverId);var relayAddress=relay.href;function patchOptions(value){if(!value||typeof value!=='object')return value;if(Array.isArray(value.relays))value.relays=[{addr:relayAddress,name:'Selected server via Render proxy',comment:'Selected server via Render proxy',primary:true}];if(Object.prototype.hasOwnProperty.call(value,'checkRelaysForUpdates'))value.checkRelaysForUpdates=false;return value;}['eaglercraftOpts','eaglercraftXOpts','eaglercraftXOptsHints'].forEach(function(name){var descriptor=Object.getOwnPropertyDescriptor(window,name);if(descriptor&&!descriptor.configurable){try{window[name]=patchOptions(window[name]);}catch(_e){}return;}var value=patchOptions(window[name]);try{Object.defineProperty(window,name,{configurable:true,enumerable:true,get:function(){return value;},set:function(next){value=patchOptions(next);}});}catch(_e){window[name]=value;}});function RelayedWebSocket(url,protocols){return protocols===undefined?new Native(relayAddress):new Native(relayAddress,protocols);}RelayedWebSocket.prototype=Native.prototype;Object.setPrototypeOf(RelayedWebSocket,Native);['CONNECTING','OPEN','CLOSING','CLOSED'].forEach(function(k){RelayedWebSocket[k]=Native[k];});window.WebSocket=RelayedWebSocket;})();</script>`;
+function proxyHook(servers) {
+  const safeServers = JSON.stringify(servers.map(({ id, name }) => ({ id, name }))).replace(/</g, '\\u003c');
+  return `<script>(function(){'use strict';var Native=window.WebSocket;var servers=${safeServers};var serverNames=new Map(servers.map(function(item){return [item.id,item.name];}));var socketProtocol=window.location.protocol==='https:'?'wss:':'ws:';function relayFor(id){var relay=new URL('/socket',window.location.origin);relay.protocol=socketProtocol;relay.searchParams.set('server',id);return relay.href;}var relays=servers.map(function(item,index){return {addr:relayFor(item.id),name:item.name,comment:'Relayed through this Render deployment',primary:index===0};});function validateRelay(url){var parsed;try{parsed=new URL(url,window.location.href);}catch(_e){throw new DOMException('Use a WSS address copied from the Serverlist.','SecurityError');}var id=parsed.searchParams.get('server');if(parsed.protocol!==socketProtocol||parsed.host!==window.location.host||parsed.pathname!=='/socket'||!serverNames.has(id)||parsed.username||parsed.password||parsed.hash)throw new DOMException('Only WSS addresses from the Serverlist are allowed.','SecurityError');return relayFor(id);}function patchOptions(value){if(!value||typeof value!=='object')return value;if(Array.isArray(value.relays))value.relays=relays;if(Object.prototype.hasOwnProperty.call(value,'checkRelaysForUpdates'))value.checkRelaysForUpdates=false;return value;}['eaglercraftOpts','eaglercraftXOpts','eaglercraftXOptsHints'].forEach(function(name){var descriptor=Object.getOwnPropertyDescriptor(window,name);if(descriptor&&!descriptor.configurable){try{window[name]=patchOptions(window[name]);}catch(_e){}return;}var value=patchOptions(window[name]);try{Object.defineProperty(window,name,{configurable:true,enumerable:true,get:function(){return value;},set:function(next){value=patchOptions(next);}});}catch(_e){window[name]=value;}});function RenderOnlyWebSocket(url,protocols){var relay=validateRelay(url);return protocols===undefined?new Native(relay):new Native(relay,protocols);}RenderOnlyWebSocket.prototype=Native.prototype;Object.setPrototypeOf(RenderOnlyWebSocket,Native);['CONNECTING','OPEN','CLOSING','CLOSED'].forEach(function(key){RenderOnlyWebSocket[key]=Native[key];});window.WebSocket=RenderOnlyWebSocket;})();</script>`;
 }
 
-function singleplayerHook() {
-  return `<script>(function(){'use strict';var Native=window.WebSocket;function BlockedWebSocket(){throw new DOMException('Multiplayer is only available from the Serverlist tab.','SecurityError');}BlockedWebSocket.prototype=Native.prototype;Object.setPrototypeOf(BlockedWebSocket,Native);['CONNECTING','OPEN','CLOSING','CLOSED'].forEach(function(k){BlockedWebSocket[k]=Native[k];});window.WebSocket=BlockedWebSocket;})();</script>`;
-}
-
-function networkPolicyTag(allowRenderWebSocket) {
+function networkPolicyTag() {
   const socketOrigin = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
-  const connectSources = allowRenderWebSocket ? `'self' ${socketOrigin}` : `'self'`;
-  const policy = `default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data: blob:; connect-src ${connectSources}; worker-src 'self' blob:; media-src 'self' data: blob:; frame-src 'self' blob: data:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'`;
+  const policy = `default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data: blob:; connect-src 'self' ${socketOrigin}; worker-src 'self' blob:; media-src 'self' data: blob:; frame-src 'self' blob: data:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'`;
   return `<meta http-equiv="Content-Security-Policy" content="${policy}">`;
 }
 
@@ -202,29 +248,24 @@ async function readWithProgress(response) {
   return bytes;
 }
 
-async function launchClient(serverId = null) {
+async function launchClient() {
   clearError();
   gameWrap.classList.add('hidden');
   gameFrame.srcdoc = '';
   statusBox.textContent = '';
   const version = versionSelect.value;
-  const selectedServer = serverId ? serverCatalog.find(item => item.id === serverId) : null;
-  if (serverId && !selectedServer) {
-    showError('Escolha um servidor da aba Serverlist.');
-    return;
-  }
   loader.classList.remove('hidden');
   launchButton.disabled = true;
   progressBar.style.width = '0%';
   loaderSize.textContent = '0.00 MB';
-  loaderDetail.textContent = selectedServer ? `Conectando a ${selectedServer.name} pelo Render…` : 'Iniciando o cliente single-player…';
-  loaderTitle.textContent = 'Preparando cliente…';
+  loaderDetail.textContent = `Loading Eaglercraft ${version}…`;
+  loaderTitle.textContent = 'Preparing client…';
 
   try {
     const response = await fetch(`/api/client/${encodeURIComponent(version)}`, { cache: 'no-store' });
     if (!response.ok) {
       let message = `Client request failed (${response.status}).`;
-      try { message = (await response.json()).error || message; } catch { /* keep fallback */ }
+      try { message = (await response.json()).error || message; } catch { /* Keep the fallback. */ }
       throw new Error(message);
     }
     const bytes = await readWithProgress(response);
@@ -239,17 +280,13 @@ async function launchClient(serverId = null) {
     if (/<base\b[^>]*>/i.test(html)) html = html.replace(/<base\b[^>]*>/i, baseTag);
     else if (/<head\b[^>]*>/i.test(html)) html = html.replace(/<head\b[^>]*>/i, match => `${match}${baseTag}`);
     else html = `${baseTag}${html}`;
-    const hook = selectedServer ? proxyHook(selectedServer.id) : singleplayerHook();
-    const policy = networkPolicyTag(Boolean(selectedServer));
+    const policy = networkPolicyTag();
+    const hook = proxyHook(serverCatalog);
     if (/<head\b[^>]*>/i.test(html)) html = html.replace(/<head\b[^>]*>/i, match => `${match}${policy}${hook}`);
     else html = `${policy}${hook}${html}`;
     gameFrame.srcdoc = html;
-    gameLabel.textContent = selectedServer
-      ? `Eaglercraft ${version} · ${selectedServer.name} · multiplayer via Render`
-      : `Eaglercraft ${version} · single-player (multiplayer bloqueado)`;
-    statusBox.textContent = selectedServer
-      ? `Multiplayer carregado via Render: ${selectedServer.name}.`
-      : 'Single-player: conexões multiplayer bloqueadas. Escolha um servidor na Serverlist para jogar online.';
+    gameLabel.textContent = `Eaglercraft ${version} · Render proxy enabled`;
+    statusBox.textContent = 'Single-player is available. Multiplayer can use only WSS addresses from the Serverlist, routed through Render.';
     gameWrap.classList.remove('hidden');
     gameWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
     loader.classList.add('hidden');
@@ -266,7 +303,22 @@ form.addEventListener('submit', event => {
   void launchClient();
 });
 
-document.querySelector('#close-game').addEventListener('click', () => {
+fullscreenButton.addEventListener('click', async () => {
+  try {
+    if (document.fullscreenElement === gameFrame) await document.exitFullscreen();
+    else if (gameFrame.requestFullscreen) await gameFrame.requestFullscreen();
+    else throw new Error('Full screen is not supported by this browser.');
+  } catch (error) {
+    statusBox.textContent = error.message || 'Could not switch to full screen.';
+  }
+});
+
+document.addEventListener('fullscreenchange', () => {
+  fullscreenButton.textContent = document.fullscreenElement === gameFrame ? 'Exit full screen' : 'Full screen';
+});
+
+document.querySelector('#close-game').addEventListener('click', async () => {
+  if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
   gameFrame.srcdoc = '';
   gameWrap.classList.add('hidden');
 });

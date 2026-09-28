@@ -27,7 +27,8 @@ footer{display:flex;justify-content:space-between;gap:15px;align-items:center;ma
 .server-card{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#131a13}
 .server-card-details{min-width:0}
 .server-card-details h3{margin:0 0 5px;font-size:14px}
-.server-address,.server-checked{margin:0;color:var(--muted);font-size:10px;line-height:1.5;overflow-wrap:anywhere}
+.server-address,.server-proxy-address,.server-checked{margin:0;color:var(--muted);font-size:10px;line-height:1.5;overflow-wrap:anywhere}
+.server-proxy-address{margin-top:4px;color:#b7c6b6}
 .server-checked{margin-top:4px;font-variant-numeric:tabular-nums}
 .server-card-metrics{display:grid;grid-template-columns:auto auto;align-items:center;justify-items:end;gap:5px 12px;flex-shrink:0}
 .server-state{font-size:10px;font-weight:700}
@@ -35,7 +36,10 @@ footer{display:flex;justify-content:space-between;gap:15px;align-items:center;ma
 .server-state.offline{color:var(--danger)}
 .server-state.checking{color:#e7c56b}
 .server-ping{min-width:50px;text-align:right;font-size:14px;font-variant-numeric:tabular-nums}
-.join-server-button{grid-column:1/-1;min-width:88px;min-height:34px;border:1px solid #486d45;border-radius:7px;background:#203020;color:var(--green);font-size:11px;font-weight:700;cursor:pointer}
-.join-server-button:hover{background:#2a3d2a}
+.copy-server-button{grid-column:1/-1;min-width:112px;min-height:34px;border:1px solid #486d45;border-radius:7px;background:#203020;color:var(--green);font-size:11px;font-weight:700;cursor:pointer}
+.copy-server-button:hover{background:#2a3d2a}
+.server-copy-status{min-height:16px;margin:0 0 9px}
+.game-toolbar-actions{display:flex;align-items:center;gap:16px}
+#game-frame:fullscreen,#game-frame:-webkit-full-screen{width:100vw;height:100vh;min-height:100vh;max-height:none;border:0;border-radius:0;background:#000}
 .server-list-empty{padding:18px;border:1px dashed var(--line);border-radius:9px;color:var(--muted);font-size:12px;text-align:center}
 @media(max-width:560px){.server-card{align-items:flex-start;gap:9px;padding:11px}.server-card-metrics{grid-template-columns:auto;gap:5px}.serverlist-heading{align-items:flex-start;flex-direction:column}.serverlist-updated{text-align:left}}

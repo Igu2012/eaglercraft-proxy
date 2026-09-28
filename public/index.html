@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101910">
-  <meta name="description" content="Eaglercraft launcher and server list with WebSocket relay and ping probes through Render.">
+  <meta name="description" content="Eaglercraft launcher and server list with a Render-routed WebSocket proxy.">
   <title>Eaglercraft Proxy</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="stylesheet" href="/styles.css">
@@ -19,55 +19,60 @@
 
     <section class="panel" aria-labelledby="page-title">
       <div class="eyebrow">BROWSER CLIENT LAUNCHER</div>
-      <h1 id="page-title">Choose your version</h1>
-      <p class="intro">Choose a client for single-player, or start multiplayer from the server list. Multiplayer traffic runs through Render.</p>
+      <h1 id="page-title">Play Eaglercraft</h1>
+      <p class="intro">Choose a client version. Multiplayer relays are limited to servers in the list and routed through Render.</p>
 
       <div class="tab-bar" role="tablist" aria-label="Launcher sections">
-        <button id="play-tab" class="tab-button" type="button" role="tab" aria-controls="play-view" aria-selected="true">Jogar</button>
+        <button id="play-tab" class="tab-button" type="button" role="tab" aria-controls="play-view" aria-selected="true">Play</button>
         <button id="servers-tab" class="tab-button" type="button" role="tab" aria-controls="serverlist-view" aria-selected="false">Serverlist</button>
       </div>
 
       <div id="play-view" class="tab-content" role="tabpanel" aria-labelledby="play-tab">
-      <form id="launch-form">
-        <label for="version">Client version</label>
-        <select id="version" name="version" required></select>
-        <p id="version-note" class="field-note"></p>
+        <form id="launch-form">
+          <label for="version">Choose your version</label>
+          <select id="version" name="version" required></select>
+          <p id="version-note" class="field-note"></p>
+          <p class="field-note">You can play single-player or choose Multiplayer in the client. Online relays are restricted to the Serverlist.</p>
+          <button id="launch-button" type="submit">Load client</button>
+        </form>
 
-        <p class="field-note">Este botão abre o modo single-player. Para multiplayer, escolha um servidor na aba Serverlist.</p>
+        <section id="loader" class="loader hidden" aria-live="polite">
+          <div class="loader-heading"><span id="loader-title">Loading client…</span><span id="loader-size">0.00 MB</span></div>
+          <div class="progress-track"><div id="progress-bar" class="progress-bar"></div></div>
+          <p id="loader-detail" class="field-note">Preparing download</p>
+        </section>
 
-        <button id="launch-button" type="submit">Jogar single-player</button>
-      </form>
-
-      <section id="loader" class="loader hidden" aria-live="polite">
-        <div class="loader-heading"><span id="loader-title">Loading client…</span><span id="loader-size">0.00 MB</span></div>
-        <div class="progress-track"><div id="progress-bar" class="progress-bar"></div></div>
-        <p id="loader-detail" class="field-note">Preparing download</p>
-      </section>
-
-      <div id="error" class="error hidden" role="alert"></div>
-      <div id="status" class="status" role="status"></div>
+        <div id="error" class="error hidden" role="alert"></div>
+        <div id="status" class="status" role="status"></div>
       </div>
 
       <section id="serverlist-view" class="tab-content hidden" role="tabpanel" aria-labelledby="servers-tab">
         <div class="serverlist-heading">
-          <h2>Servidores Eaglercraft</h2>
-          <span id="serverlist-updated" class="serverlist-updated">Aguardando o Render…</span>
+          <h2>Eaglercraft Servers</h2>
+          <span id="serverlist-updated" class="serverlist-updated">Waiting for Render…</span>
         </div>
-        <p class="field-note serverlist-note">Ping medido pelo handshake WebSocket entre o Render e cada servidor. A lista consulta o Render a cada segundo.</p>
+        <p class="field-note serverlist-note">Ping is measured as WebSocket handshake time from Render. This list refreshes every second while open.</p>
+        <p id="server-copy-status" class="field-note server-copy-status" role="status" aria-live="polite"></p>
         <div id="serverlist" class="server-list" aria-live="polite">
-          <p class="server-list-empty">Carregando servidores…</p>
+          <p class="server-list-empty">Loading servers…</p>
         </div>
       </section>
     </section>
 
     <section id="game-wrap" class="game-wrap hidden" aria-label="Game client">
-      <div class="game-toolbar"><span id="game-label">Client</span><button id="close-game" class="quiet-button" type="button">Close client</button></div>
-      <iframe id="game-frame" title="Eaglercraft client" allow="fullscreen; gamepad; pointer-lock" referrerpolicy="no-referrer"></iframe>
+      <div class="game-toolbar">
+        <span id="game-label">Eaglercraft Client</span>
+        <div class="game-toolbar-actions">
+          <button id="fullscreen-game" class="quiet-button" type="button">Full screen</button>
+          <button id="close-game" class="quiet-button" type="button">Close client</button>
+        </div>
+      </div>
+      <iframe id="game-frame" title="Eaglercraft client" allow="fullscreen; gamepad; pointer-lock" allowfullscreen referrerpolicy="no-referrer"></iframe>
     </section>
 
     <footer>
       <span>Bundled clients are documented in the source repository. Use only where authorized.</span>
-      <a href="https://github.com/Igu2012/eaglercraft-proxy" id="repo-link" rel="noreferrer">Source & setup</a>
+      <a href="https://github.com/Igu2012/eaglercraft-proxy" id="repo-link" rel="noreferrer">Source &amp; setup</a>
     </footer>
   </main>
 </body>

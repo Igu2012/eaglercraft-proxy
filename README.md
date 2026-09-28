@@ -9,9 +9,10 @@ A lightweight launcher for standalone Eaglercraft HTML clients, with a secure We
 ## Features
 
 - Version selector for Eaglercraft 1.5.2, 1.8.8, and 1.12.2.
-- The `Jogar` menu only selects a client and launches it in single-player; multiplayer WebSockets are blocked in that mode.
+- The `Play` tab lets the user choose a client version and load it for single-player or multiplayer.
 - Real download progress (`loaded MB / total MB`) for the bundled standalone HTML clients.
-- Multiplayer starts from a `Jogar` button on a listed server card and uses the chosen client version.
+- Each server card copies its Render-proxy WSS address; the game client can connect only to relays from the curated list.
+- A full-screen control expands the game iframe to the browser viewport.
 - A `Serverlist` tab shows a curated selection of Eaglercraft servers with online state and WebSocket-handshake ping measured by this Render service.
 - The server list asks the Render API for fresh shared ping results every second while open; each listed server is probed at most once per second per service instance.
 - WebSocket game traffic is relayed by the Node server to a selected server ID from the local catalog, including relay settings embedded in the clients.
@@ -29,8 +30,6 @@ A lightweight launcher for standalone Eaglercraft HTML clients, with a secure We
 
 The three downloaded files were checked against their source Git blob hashes. That verifies file identity, not licensing. The maintainer has confirmed permission for this hosting and redistribution; this confirmation is not a general license for other users to mirror the files. Version-specific research and caveats remain in the `versions/<version>/README.md` files.
 
-The remaining catalog slots (`1.16.5`, `1.26.2`, and `26.2`) are placeholders and are unavailable until an authorized client file is added.
-
 The initial server directory is a manually curated snapshot of entries shown on [Eagler Server List](https://servers.eaglercraft.com/). It is not scraped or synchronized automatically. Review each server's current address and terms before adding or changing an entry in `servers/catalog.json`.
 
 ## Deploy to Render
@@ -38,9 +37,9 @@ The initial server directory is a manually curated snapshot of entries shown on 
 1. Push this repository to GitHub and connect it in Render.
 2. In Render, create a **Blueprint** from the repository. The included `render.yaml` defines the web service.
 3. Deploy without setting `ALLOWED_UPSTREAM_HOSTS` or `ALLOWED_UPSTREAM_PORTS`; the service is ready from its bundled catalog.
-4. In `Jogar`, choose a client and start single-player. To play multiplayer, click `Jogar` on a server card in `Serverlist`; that server's game WebSocket is routed through Render.
+4. In `Play`, choose one of the three installed client versions and load it. To use multiplayer, copy a WSS address from a `Serverlist` card and select or enter that Render relay in the game client.
 
-The service intentionally has **no open proxy mode**: `/socket` accepts a server ID only, and maps it to an entry in `servers/catalog.json`. A browser cannot provide an arbitrary host. Single-player blocks WebSocket communication; multiplayer can only be launched from a server-list card. Raw IPs and non-public DNS answers are blocked; upstreams must use secure `wss://` on port `443`.
+The service intentionally has **no open proxy mode**: `/socket` accepts a server ID only, and maps it to an entry in `servers/catalog.json`. A browser cannot provide an arbitrary host. The embedded client rewrites relay settings to the Render proxy and rejects WebSocket URLs that are not this Render host or do not contain a listed server ID. Raw IPs and non-public DNS answers are blocked; upstreams must use secure `wss://` on port `443`.
 
 ## Run locally
 
@@ -78,4 +77,4 @@ npm test
 
 ## Network behavior
 
-The launcher hosts its own UI and local client files. Browser requests for serverlist/ping data stay on this Render origin; actual WSS ping handshakes originate at the Render service. The game iframe has a Content Security Policy that blocks connections and assets from external origins. In multiplayer, its only permitted WebSocket origin is this Render host, and the `/socket` route accepts only a curated server ID. In single-player, WebSockets are blocked entirely. The page itself does not load third-party fonts or scripts.
+The launcher hosts its own UI and local client files. Browser requests for serverlist/ping data stay on this Render origin; actual WSS ping handshakes originate at the Render service. The game iframe has a Content Security Policy that blocks connections and assets from external origins. Its only permitted WebSocket origin is this Render host, and the `/socket` route accepts only a curated server ID. The page itself does not load third-party fonts or scripts.

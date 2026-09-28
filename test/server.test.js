@@ -35,19 +35,26 @@ test('serves launcher and reports catalog-backed relay readiness without upstrea
   assert.equal(page.status, 200);
   const html = await page.text();
   assert.match(html, /Eaglercraft Proxy/);
-  assert.match(html, /Jogar single-player/);
+  assert.match(html, /Choose your version/);
+  assert.match(html, /Full screen/);
+  assert.match(html, /allowfullscreen/);
+  assert.doesNotMatch(html, /Jogar|Servidores|Aguardando/);
   assert.doesNotMatch(html, /server-address/);
   assert.deepEqual(await healthResponse.json(), { ok: true, proxyReady: true, serverCount: 10 });
 });
 
-test('routes multiplayer only from listed server buttons and blocks WebSockets for single-player', () => {
+test('copies only catalog-backed Render relay addresses and blocks external WebSockets', () => {
   const client = fs.readFileSync(path.join(__dirname, '..', 'public', 'app.js'), 'utf8');
-  assert.match(client, /launchClient\(button\.dataset\.joinServer\)/);
-  assert.match(client, /function singleplayerHook\(\)/);
-  assert.match(client, /relay\.searchParams\.set\('server',serverId\)/);
-  assert.match(client, /function networkPolicyTag\(allowRenderWebSocket\)/);
-  assert.match(client, /connect-src \$\{connectSources\}/);
+  assert.match(client, /copyServerAddress\(button\.dataset\.copyServer, button\)/);
+  assert.match(client, /copy\.textContent = 'Copy WSS'/);
+  assert.match(client, /function getProxyAddress\(serverId\)/);
+  assert.match(client, /function proxyHook\(servers\)/);
+  assert.match(client, /Only WSS addresses from the Serverlist are allowed/);
+  assert.match(client, /function networkPolicyTag\(\)/);
+  assert.match(client, /connect-src 'self' \$\{socketOrigin\}/);
+  assert.match(client, /gameFrame\.requestFullscreen\(\)/);
   assert.doesNotMatch(client, /searchParams\.set\('target'/);
+  assert.doesNotMatch(client, /Jogar|Servidores|Aguardando|Escolha|Medição|Conectando/);
 });
 
 test('serves the curated server list and cached ping fields through the local API', async () => {
@@ -64,12 +71,12 @@ test('serves the curated server list and cached ping fields through the local AP
   assert.equal(servers[0].checking, false);
 });
 
-test('publishes the requested version slots and marks bundled clients available', async () => {
+test('publishes only the three bundled client versions', async () => {
   const response = await fetch(`${BASE}/api/versions`);
   assert.equal(response.status, 200);
   const { versions } = await response.json();
-  assert.deepEqual(versions.map(version => version.id), ['1.5.2', '1.8.8', '1.12.2', '1.16.5', '1.26.2', '26.2']);
-  assert.deepEqual(versions.filter(version => version.available).map(version => version.id), ['1.5.2', '1.8.8', '1.12.2']);
+  assert.deepEqual(versions.map(version => version.id), ['1.5.2', '1.8.8', '1.12.2']);
+  assert.ok(versions.every(version => version.available));
 });
 
 test('explains when a client file is not installed', async () => {
