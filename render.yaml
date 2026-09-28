@@ -8,9 +8,5 @@ services:
     healthCheckPath: /api/health
     autoDeployTrigger: commit
     envVars:
-      - key: ALLOWED_UPSTREAM_HOSTS
-        sync: false
-      - key: ALLOWED_UPSTREAM_PORTS
-        value: "443"
       - key: CLIENT_LIMIT_MB
         value: "150"

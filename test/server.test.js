@@ -12,7 +12,7 @@ let serverProcess;
 before(async () => {
   serverProcess = spawn(process.execPath, ['server.js'], {
     cwd: process.cwd(),
-    env: { ...process.env, PORT: String(PORT), ALLOWED_UPSTREAM_HOSTS: '', ALLOWED_UPSTREAM_PORTS: '443' },
+    env: { ...process.env, PORT: String(PORT), DISABLE_SERVER_PINGS: 'true' },
     stdio: 'ignore'
   });
   const started = Date.now();
@@ -30,11 +30,38 @@ after(() => {
   if (serverProcess && !serverProcess.killed) serverProcess.kill('SIGTERM');
 });
 
-test('serves launcher and reports health with relay disabled by default', async () => {
+test('serves launcher and reports catalog-backed relay readiness without upstream environment variables', async () => {
   const [page, healthResponse] = await Promise.all([fetch(BASE), fetch(`${BASE}/api/health`)]);
   assert.equal(page.status, 200);
-  assert.match(await page.text(), /Eaglercraft Proxy/);
-  assert.deepEqual(await healthResponse.json(), { ok: true, proxyReady: false });
+  const html = await page.text();
+  assert.match(html, /Eaglercraft Proxy/);
+  assert.match(html, /Jogar single-player/);
+  assert.doesNotMatch(html, /server-address/);
+  assert.deepEqual(await healthResponse.json(), { ok: true, proxyReady: true, serverCount: 10 });
+});
+
+test('routes multiplayer only from listed server buttons and blocks WebSockets for single-player', () => {
+  const client = fs.readFileSync(path.join(__dirname, '..', 'public', 'app.js'), 'utf8');
+  assert.match(client, /launchClient\(button\.dataset\.joinServer\)/);
+  assert.match(client, /function singleplayerHook\(\)/);
+  assert.match(client, /relay\.searchParams\.set\('server',serverId\)/);
+  assert.match(client, /function networkPolicyTag\(allowRenderWebSocket\)/);
+  assert.match(client, /connect-src \$\{connectSources\}/);
+  assert.doesNotMatch(client, /searchParams\.set\('target'/);
+});
+
+test('serves the curated server list and cached ping fields through the local API', async () => {
+  const response = await fetch(`${BASE}/api/servers`);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  const { refreshSeconds, servers } = await response.json();
+  assert.equal(refreshSeconds, 1);
+  assert.equal(servers.length, 10);
+  assert.equal(servers[0].id, 'archmc');
+  assert.equal(servers[0].address, 'wss://arch.mc');
+  assert.equal(servers[0].online, null);
+  assert.equal(servers[0].pingMs, null);
+  assert.equal(servers[0].checking, false);
 });
 
 test('publishes the requested version slots and marks bundled clients available', async () => {
@@ -80,12 +107,12 @@ test('serves an installed legacy directory client with a byte length for downloa
   }
 });
 
-test('rejects an unapproved WebSocket destination before opening an upstream', async () => {
-  const url = `ws://127.0.0.1:${PORT}/socket?target=${encodeURIComponent('wss://127.0.0.1')}`;
+test('rejects unknown server IDs before opening an upstream, ignoring arbitrary target URLs', async () => {
+  const url = `ws://127.0.0.1:${PORT}/socket?server=not-in-catalog&target=${encodeURIComponent('wss://127.0.0.1')}`;
   const statusCode = await new Promise((resolve, reject) => {
     const socket = new WebSocket(url);
     socket.on('unexpected-response', (_request, response) => { response.resume(); resolve(response.statusCode); });
-    socket.on('open', () => reject(new Error('Unapproved proxy destination unexpectedly connected.')));
+    socket.on('open', () => reject(new Error('Unknown server ID unexpectedly connected.')));
     socket.on('error', error => {
       if (error.message.includes('Unexpected server response')) return;
       reject(error);

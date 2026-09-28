@@ -4,6 +4,7 @@ const path = require('node:path');
 const express = require('express');
 const ipaddr = require('ipaddr.js');
 const WebSocket = require('ws');
+const { performance } = require('node:perf_hooks');
 
 const app = express();
 const server = require('node:http').createServer(app);
@@ -12,10 +13,16 @@ const CLIENT_LIMIT_BYTES = Number(process.env.CLIENT_LIMIT_MB || 150) * 1024 * 1
 const MAX_WS_PAYLOAD = 16 * 1024 * 1024;
 const MAX_CONNECTIONS_PER_IP = Number(process.env.MAX_CONNECTIONS_PER_IP || 5);
 const MAX_TOTAL_CONNECTIONS = Number(process.env.MAX_TOTAL_CONNECTIONS || 100);
-const allowedHosts = new Set((process.env.ALLOWED_UPSTREAM_HOSTS || '')
-  .split(',').map(value => value.trim().toLowerCase().replace(/\.$/, '')).filter(Boolean));
-const allowedPorts = new Set((process.env.ALLOWED_UPSTREAM_PORTS || '443')
-  .split(',').map(value => Number(value.trim())).filter(value => Number.isInteger(value) && value > 0 && value <= 65535));
+const SERVER_CATALOG = JSON.parse(fs.readFileSync(path.join(ROOT, 'servers', 'catalog.json'), 'utf8')).servers;
+const SERVER_BY_ID = new Map(SERVER_CATALOG.map(item => [item.id, item]));
+const SERVER_PING_INTERVAL_MS = 1000;
+const SERVER_PING_TIMEOUT_MS = 5000;
+const MAX_SERVER_PROBES_IN_FLIGHT = 5;
+const DISABLE_SERVER_PINGS = process.env.DISABLE_SERVER_PINGS === 'true';
+const pingResults = new Map(SERVER_CATALOG.map(item => [item.id, {
+  online: null, pingMs: null, checkedAt: null, inFlight: 0, lastStartedAt: 0,
+  sequence: 0, lastCompletedSequence: 0
+}]));
 const activeByIp = new Map();
 let totalConnections = 0;
 
@@ -31,7 +38,7 @@ app.use(express.static(path.join(ROOT, 'public'), { extensions: ['html'] }));
 app.use('/versions', express.static(path.join(ROOT, 'versions'), { index: false, dotfiles: 'deny' }));
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, proxyReady: allowedHosts.size > 0 && allowedPorts.size > 0 });
+  res.json({ ok: true, proxyReady: SERVER_CATALOG.length > 0, serverCount: SERVER_CATALOG.length });
 });
 
 app.get('/api/versions', (_req, res) => {
@@ -41,6 +48,18 @@ app.get('/api/versions', (_req, res) => {
   } catch {
     res.status(500).json({ error: 'Version catalog is unavailable.' });
   }
+});
+
+app.get('/api/servers', (req, res) => {
+  if (!DISABLE_SERVER_PINGS && req.query.probe === '1') SERVER_CATALOG.forEach(scheduleServerProbe);
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    refreshSeconds: SERVER_PING_INTERVAL_MS / 1000,
+    servers: SERVER_CATALOG.map(item => {
+      const { inFlight, lastStartedAt, sequence, lastCompletedSequence, ...status } = pingResults.get(item.id);
+      return { ...item, ...status, checking: inFlight > 0 };
+    })
+  });
 });
 
 app.get('/api/client/:version', (req, res) => {
@@ -79,15 +98,15 @@ function clientIp(req) {
 }
 
 function parseTarget(raw) {
-  if (typeof raw !== 'string' || raw.length > 2048) throw new Error('Enter a valid secure WebSocket URL (wss://...).');
-  const target = new URL(raw.includes('://') ? raw : `wss://${raw}`);
+  if (typeof raw !== 'string' || raw.length > 2048) throw new Error('Invalid server address.');
+  const target = new URL(raw);
   if (target.protocol !== 'wss:') throw new Error('Only secure wss:// upstream connections are allowed.');
   if (target.username || target.password || target.hash) throw new Error('Credentials and URL fragments are not allowed in the server address.');
   const hostname = target.hostname.toLowerCase().replace(/\.$/, '');
   const port = Number(target.port || 443);
-  if (!hostname || !allowedHosts.has(hostname)) throw new Error('That host is not on this deployment’s ALLOWED_UPSTREAM_HOSTS list.');
-  if (!allowedPorts.has(port)) throw new Error(`Port ${port} is not allowed. Configure ALLOWED_UPSTREAM_PORTS on Render.`);
-  if (ipaddr.isValid(hostname)) throw new Error('Use an approved DNS hostname rather than a raw IP address.');
+  if (!hostname) throw new Error('The server address is missing a hostname.');
+  if (port !== 443) throw new Error('Only the secure WebSocket port 443 is supported for listed servers.');
+  if (ipaddr.isValid(hostname)) throw new Error('Listed servers must use a DNS hostname, not a raw IP address.');
   return { target, hostname, port };
 }
 
@@ -97,6 +116,55 @@ async function resolvePublic(hostname) {
     throw new Error('The destination resolved to a non-public network address and was blocked.');
   }
   return addresses;
+}
+
+function scheduleServerProbe(item) {
+  const state = pingResults.get(item.id);
+  const now = Date.now();
+  if (!state || state.inFlight >= MAX_SERVER_PROBES_IN_FLIGHT || now - state.lastStartedAt < SERVER_PING_INTERVAL_MS) return;
+  state.inFlight += 1;
+  state.lastStartedAt = now;
+  const sequence = ++state.sequence;
+
+  void (async () => {
+    let probe;
+    let settled = false;
+    const finish = online => {
+      if (settled) return;
+      settled = true;
+      state.inFlight = Math.max(0, state.inFlight - 1);
+      if (sequence > state.lastCompletedSequence) {
+        state.lastCompletedSequence = sequence;
+        state.online = online;
+        state.pingMs = online ? Math.max(0, Math.round(performance.now() - startedAt)) : null;
+        state.checkedAt = new Date().toISOString();
+      }
+      if (probe?.readyState === WebSocket.OPEN) probe.close(1000, 'Ping complete');
+      else if (probe?.readyState === WebSocket.CONNECTING) probe.terminate();
+    };
+
+    let startedAt = performance.now();
+    try {
+      const parsed = parseTarget(item.address);
+      const addresses = await resolvePublic(parsed.hostname);
+      const pinned = addresses[0];
+      startedAt = performance.now();
+      probe = new WebSocket(parsed.target, undefined, {
+        maxPayload: 1024,
+        handshakeTimeout: SERVER_PING_TIMEOUT_MS,
+        perMessageDeflate: false,
+        lookup: (_hostname, options, callback) => {
+          if (options && options.all) return callback(null, addresses.map(address => ({ address: address.address, family: address.family })));
+          callback(null, pinned.address, pinned.family);
+        }
+      });
+      probe.once('open', () => finish(true));
+      probe.once('error', () => finish(false));
+      probe.once('close', () => finish(false));
+    } catch {
+      finish(false);
+    }
+  })();
 }
 
 function decrementConnection(ip) {
@@ -141,7 +209,10 @@ server.on('upgrade', async (req, socket, head) => {
   let parsed;
   let addresses;
   try {
-    parsed = parseTarget(requestUrl.searchParams.get('target'));
+    const serverId = requestUrl.searchParams.get('server');
+    const selectedServer = SERVER_BY_ID.get(serverId);
+    if (!selectedServer) throw new Error('Choose a server from the server list.');
+    parsed = parseTarget(selectedServer.address);
     addresses = await resolvePublic(parsed.hostname);
   } catch (error) {
     const message = error.message.replace(/[\r\n]/g, ' ');
@@ -222,6 +293,6 @@ server.on('upgrade', async (req, socket, head) => {
 });
 
 const port = Number(process.env.PORT || 3000);
-server.listen(port, '0.0.0.0', () => console.log(`Eaglercraft Proxy listening on ${port}; upstream hosts configured: ${allowedHosts.size}`));
+server.listen(port, '0.0.0.0', () => console.log(`Eaglercraft Proxy listening on ${port}; listed servers: ${SERVER_CATALOG.length}`));
 
 process.on('SIGTERM', () => server.close(() => process.exit(0)));

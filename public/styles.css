@@ -13,3 +13,29 @@ button{font:inherit}#launch-button{height:46px;width:100%;margin-top:24px;border
 .game-wrap{margin:24px auto 0;border:1px solid var(--line);border-radius:12px;background:#111711;overflow:hidden}.game-toolbar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-size:12px;color:#dce5db}.quiet-button{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:12px}.quiet-button:hover{color:white}#game-frame{display:block;width:100%;height:min(70vh,650px);min-height:380px;border:0;background:#000}
 footer{display:flex;justify-content:space-between;gap:15px;align-items:center;margin:24px auto 0;width:min(100%,690px);color:#829082;font-size:10px;line-height:1.5}footer a{color:#a9dca1;text-decoration:none;white-space:nowrap}footer a:hover{text-decoration:underline}
 @media(max-width:560px){.shell{width:min(100% - 22px,760px);padding-top:17px}.brand{margin-bottom:30px}.panel{padding:24px 19px}.intro{font-size:13px}footer{align-items:flex-start;flex-direction:column}#game-frame{min-height:280px;height:65vh}}
+
+.panel{width:min(100%,860px)}
+.tab-bar{display:flex;gap:8px;padding:4px;margin:0 0 20px;border:1px solid var(--line);border-radius:10px;background:#121812}
+.tab-button{flex:1;min-height:40px;border:0;border-radius:7px;background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer}
+.tab-button[aria-selected=true]{background:#263326;color:var(--green)}
+.tab-content{min-width:0}
+.serverlist-heading{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:5px 0 3px}
+.serverlist-heading h2{margin:0;font-size:19px;letter-spacing:-.02em}
+.serverlist-updated{color:var(--muted);font-size:10px;text-align:right}
+.serverlist-note{margin:0 0 14px}
+.server-list{display:grid;gap:9px}
+.server-card{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#131a13}
+.server-card-details{min-width:0}
+.server-card-details h3{margin:0 0 5px;font-size:14px}
+.server-address,.server-checked{margin:0;color:var(--muted);font-size:10px;line-height:1.5;overflow-wrap:anywhere}
+.server-checked{margin-top:4px;font-variant-numeric:tabular-nums}
+.server-card-metrics{display:grid;grid-template-columns:auto auto;align-items:center;justify-items:end;gap:5px 12px;flex-shrink:0}
+.server-state{font-size:10px;font-weight:700}
+.server-state.online{color:var(--green)}
+.server-state.offline{color:var(--danger)}
+.server-state.checking{color:#e7c56b}
+.server-ping{min-width:50px;text-align:right;font-size:14px;font-variant-numeric:tabular-nums}
+.join-server-button{grid-column:1/-1;min-width:88px;min-height:34px;border:1px solid #486d45;border-radius:7px;background:#203020;color:var(--green);font-size:11px;font-weight:700;cursor:pointer}
+.join-server-button:hover{background:#2a3d2a}
+.server-list-empty{padding:18px;border:1px dashed var(--line);border-radius:9px;color:var(--muted);font-size:12px;text-align:center}
+@media(max-width:560px){.server-card{align-items:flex-start;gap:9px;padding:11px}.server-card-metrics{grid-template-columns:auto;gap:5px}.serverlist-heading{align-items:flex-start;flex-direction:column}.serverlist-updated{text-align:left}}

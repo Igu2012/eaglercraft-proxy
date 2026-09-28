@@ -1,0 +1,16 @@
+{
+  "source": "https://servers.eaglercraft.com/",
+  "refreshSeconds": 1,
+  "servers": [
+    { "id": "archmc", "name": "ArchMC", "address": "wss://arch.mc", "categories": ["PVP", "Minigames", "Survival", "Creative"] },
+    { "id": "voidsent", "name": "Voidsent MC", "address": "wss://mc.voidsent.net", "categories": ["PVP", "Factions", "Survival", "RPG"] },
+    { "id": "pixel-craft", "name": "Pixel Craft", "address": "wss://pcsmp.net", "categories": ["PVP", "Creative", "Survival"] },
+    { "id": "mercurymc", "name": "MercuryMC", "address": "wss://mercurymc.net", "categories": ["Survival", "PVE", "PVP"] },
+    { "id": "zentic-network", "name": "Zentic Network", "address": "wss://zentic.cc", "categories": ["PVP", "Minigames", "Survival"] },
+    { "id": "dssx", "name": "Dumbshit Survival X", "address": "wss://mc.dssx.uk", "categories": ["Survival", "Minigames"] },
+    { "id": "fkas-survival", "name": "FKAS Survival", "address": "wss://fkas.online", "categories": ["Survival", "PVP", "Skyblock"] },
+    { "id": "heartsmp", "name": "Lifesteal & Creative & Anarchy", "address": "wss://play.heartsmp.net", "categories": ["PVP", "Survival", "Lifesteal"] },
+    { "id": "tuffnet", "name": "TuffNET", "address": "wss://tuff.ws", "categories": ["Survival", "Skyblock"] },
+    { "id": "zythmc", "name": "ZythMC", "address": "wss://mc.zyth.me", "categories": ["PVP", "Survival", "Factions"] }
+  ]
+}

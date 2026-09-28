@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101910">
-  <meta name="description" content="A lightweight Eaglercraft client launcher with an allowlisted WebSocket relay.">
+  <meta name="description" content="Eaglercraft launcher and server list with WebSocket relay and ping probes through Render.">
   <title>Eaglercraft Proxy</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="stylesheet" href="/styles.css">
@@ -20,18 +20,22 @@
     <section class="panel" aria-labelledby="page-title">
       <div class="eyebrow">BROWSER CLIENT LAUNCHER</div>
       <h1 id="page-title">Choose your version</h1>
-      <p class="intro">Pick a client version and server. Your WebSocket connection is relayed through this deployment.</p>
+      <p class="intro">Choose a client for single-player, or start multiplayer from the server list. Multiplayer traffic runs through Render.</p>
 
+      <div class="tab-bar" role="tablist" aria-label="Launcher sections">
+        <button id="play-tab" class="tab-button" type="button" role="tab" aria-controls="play-view" aria-selected="true">Jogar</button>
+        <button id="servers-tab" class="tab-button" type="button" role="tab" aria-controls="serverlist-view" aria-selected="false">Serverlist</button>
+      </div>
+
+      <div id="play-view" class="tab-content" role="tabpanel" aria-labelledby="play-tab">
       <form id="launch-form">
         <label for="version">Client version</label>
         <select id="version" name="version" required></select>
         <p id="version-note" class="field-note"></p>
 
-        <label for="server-address">Eaglercraft relay address</label>
-        <input id="server-address" name="server" type="text" inputmode="url" autocomplete="url" placeholder="wss://relay.example.net" required maxlength="2048">
-        <p class="field-note">Use a secure WebSocket (wss://) relay enabled by the host operator.</p>
+        <p class="field-note">Este botão abre o modo single-player. Para multiplayer, escolha um servidor na aba Serverlist.</p>
 
-        <button id="launch-button" type="submit">Load client</button>
+        <button id="launch-button" type="submit">Jogar single-player</button>
       </form>
 
       <section id="loader" class="loader hidden" aria-live="polite">
@@ -42,6 +46,18 @@
 
       <div id="error" class="error hidden" role="alert"></div>
       <div id="status" class="status" role="status"></div>
+      </div>
+
+      <section id="serverlist-view" class="tab-content hidden" role="tabpanel" aria-labelledby="servers-tab">
+        <div class="serverlist-heading">
+          <h2>Servidores Eaglercraft</h2>
+          <span id="serverlist-updated" class="serverlist-updated">Aguardando o Render…</span>
+        </div>
+        <p class="field-note serverlist-note">Ping medido pelo handshake WebSocket entre o Render e cada servidor. A lista consulta o Render a cada segundo.</p>
+        <div id="serverlist" class="server-list" aria-live="polite">
+          <p class="server-list-empty">Carregando servidores…</p>
+        </div>
+      </section>
     </section>
 
     <section id="game-wrap" class="game-wrap hidden" aria-label="Game client">
