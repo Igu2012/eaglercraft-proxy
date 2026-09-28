@@ -38,6 +38,8 @@ test('serves launcher and reports catalog-backed relay readiness without upstrea
   assert.match(html, /Choose your version/);
   assert.match(html, /Full screen/);
   assert.match(html, /allowfullscreen/);
+  assert.match(html, /id="fullscreen-return"/);
+  assert.match(html, /Tap to return/);
   assert.doesNotMatch(html, /Jogar|Servidores|Aguardando/);
   assert.doesNotMatch(html, /server-address/);
   assert.deepEqual(await healthResponse.json(), { ok: true, proxyReady: true, serverCount: 10 });
@@ -52,7 +54,17 @@ test('copies only catalog-backed Render relay addresses and blocks external WebS
   assert.match(client, /Only WSS addresses from the Serverlist are allowed/);
   assert.match(client, /function networkPolicyTag\(\)/);
   assert.match(client, /connect-src 'self' \$\{socketOrigin\}/);
-  assert.match(client, /gameFrame\.requestFullscreen\(\)/);
+  assert.match(client, /root\.requestFullscreen\(\{ navigationUI: 'hide' \}\)/);
+  assert.match(client, /function requestPageFullscreen\(\)/);
+  assert.match(client, /screen\.orientation\.lock\('landscape'\)/);
+  assert.match(client, /window\.addEventListener\('orientationchange', maintainLandscape\)/);
+  assert.match(client, /pendingReturnPrompt = true/);
+  assert.match(client, /returnToFullscreenButton\.addEventListener\('click'/);
+  const styles = fs.readFileSync(path.join(__dirname, '..', 'public', 'styles.css'), 'utf8');
+  assert.match(styles, /body\.client-active #game-frame/);
+  assert.match(styles, /height:100dvh/);
+  const launchFlow = client.slice(client.indexOf('async function launchClient'), client.indexOf("form.addEventListener('submit'"));
+  assert.ok(launchFlow.indexOf('requestPageFullscreen()') < launchFlow.indexOf('await fetch('), 'mobile fullscreen must be requested during the original user gesture');
   assert.doesNotMatch(client, /searchParams\.set\('target'/);
   assert.doesNotMatch(client, /Jogar|Servidores|Aguardando|Escolha|Medição|Conectando/);
 });

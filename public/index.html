@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101910">
   <meta name="description" content="Eaglercraft launcher and server list with a Render-routed WebSocket proxy.">
   <title>Eaglercraft Proxy</title>
@@ -17,7 +17,7 @@
       <span>Eaglercraft <strong>Proxy</strong></span>
     </header>
 
-    <section class="panel" aria-labelledby="page-title">
+    <section id="launcher-panel" class="panel" aria-labelledby="page-title">
       <div class="eyebrow">BROWSER CLIENT LAUNCHER</div>
       <h1 id="page-title">Play Eaglercraft</h1>
       <p class="intro">Choose a client version. Multiplayer relays are limited to servers in the list and routed through Render.</p>
@@ -75,5 +75,12 @@
       <a href="https://github.com/Igu2012/eaglercraft-proxy" id="repo-link" rel="noreferrer">Source &amp; setup</a>
     </footer>
   </main>
+
+  <div id="fullscreen-return" class="fullscreen-return hidden" role="dialog" aria-modal="true" aria-label="Return to the game">
+    <div class="fullscreen-return-card">
+      <p>Full screen was closed.</p>
+      <button id="return-to-fullscreen" type="button">Tap to return</button>
+    </div>
+  </div>
 </body>
 </html>
